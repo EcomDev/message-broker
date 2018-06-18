@@ -1,0 +1,11 @@
+### OSX Files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### Composer files
+composer.phar
+/vendor/
+
+### IDE
+/.idea/
