@@ -1,0 +1,32 @@
+{
+    "name": "ecomdev/message-broker",
+    "description": "Library that allows async message like communication for reactive PHP applications",
+    "type": "library",
+    "require": {
+        "php": "^7.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ivan Chepurnyi",
+            "email": "ivan.chepurnyi@ecomdev.org"
+        }
+    ],
+    "minimum-stability": "stable",
+    "autoload": {
+        "psr-4": {
+            "EcomDev\\MessageBroker\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "EcomDev\\MessageBroker\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --colors --coverage-text"
+    }
+}
