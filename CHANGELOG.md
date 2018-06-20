@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Remote Message Broker Server
 
 ## [Unreleased]
-### Added:
 
+## [0.1.0] - 2018-07-21
+### Added:
 - Single Threaded Message Broker `InMemoryMessageBroker` with possibility to filter messages by header values
 
-[Unreleased]: https://github.com/ecomdev/message-broker/compare/f9e3867...HEAD
+
+[0.1.0]: https://github.com/ecomdev/message-broker/compare/f9e38...0.1.0
+[Unreleased]: https://github.com/ecomdev/message-broker/compare/0.1.0...HEAD
