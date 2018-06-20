@@ -1,0 +1,28 @@
+sudo: false
+
+language: php
+
+php:
+  - 7.1
+  - 7.2
+  - nightly
+env:
+  - USE_LOCK=0
+  - USE_LOCK=1
+matrix:
+  allow_failures:
+    - env: USE_LOCK=0
+    - php: nightly
+  fast_finish: true
+
+cache:
+  directories:
+    - $HOME/.composer/
+
+before_script:
+  - "[ $USE_LOCK -eq 0 ] || rm composer.lock"
+  - composer self-update
+  - composer install
+
+script:
+  - composer test
