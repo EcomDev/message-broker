@@ -15,30 +15,32 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @var InMemoryMessageBroker */
     private $messageBroker;
 
-    /** @var array */
-    private $actionSequence;
+    /**
+     * @var SequenceRecorder
+     */
+    private $sequenceRecorder;
 
     protected function setUp()
     {
         $this->messageBroker = InMemoryMessageBroker::createWithoutMessageLimit();
-        $this->actionSequence = [];
+        $this->sequenceRecorder = new SequenceRecorder();
     }
 
     /** @test */
     public function messagesAreDeliveredToConsumer()
     {
-        $this->messageBroker->addConsumer('Consumer #1', $this->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer('Consumer #1', $this->sequenceRecorder->addFirstArgumentToSequence());
 
         $this->messageBroker->sendMessage(
             ['my' => 'Message #1'],
-            $this->addTextToSequence('Message #1 has been received'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message #1 has been received'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->messageBroker->sendMessage(
             ['my' => 'Message #2'],
-            $this->addTextToSequence('Message #2 has been received'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message #2 has been received'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->verifyActionSequence(
@@ -54,8 +56,8 @@ class InMemoryMessageBrokerTest extends TestCase
     {
         $this->messageBroker->sendMessage(
             ['hello' => 'world'],
-            $this->addTextToSequence('Message success callback, that should not be called'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message success callback, that should not be called'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->verifyActionSequence(new RouteNotFoundException());
@@ -64,12 +66,12 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @test */
     public function returnsMessageBackWhenConsumerIsRemovedBeforeRouting()
     {
-        $this->messageBroker->addConsumer('Consumer #1', $this->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer('Consumer #1', $this->sequenceRecorder->addFirstArgumentToSequence());
 
         $this->messageBroker->sendMessage(
             ['hello' => 'world'],
-            $this->addTextToSequence('Message success callback, that should not be called'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message success callback, that should not be called'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->messageBroker->removeConsumer('Consumer #1');
@@ -86,8 +88,8 @@ class InMemoryMessageBrokerTest extends TestCase
 
         $this->messageBroker->sendMessage(
             ['hello' => 'world'],
-            $this->addTextToSequence('Message success callback, that should not be called'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message success callback, that should not be called'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->verifyActionSequence(new RouteNotFoundException());
@@ -96,12 +98,12 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @test */
     public function sendsHeadersTogetherWithMessageToConsumer()
     {
-        $this->messageBroker->addConsumer('Consumer #1', $this->addAllArgumentsToSequence());
+        $this->messageBroker->addConsumer('Consumer #1', $this->sequenceRecorder->addAllArgumentsToSequence());
 
         $this->messageBroker->sendMessage(
             ['my' => 'Message #1'],
-            $this->addTextToSequence('Message #1 is received'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Message #1 is received'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['header' => 'value']
         );
 
@@ -118,13 +120,16 @@ class InMemoryMessageBrokerTest extends TestCase
             return false;
         });
 
-        $this->messageBroker->addConsumer('Consumer #2', $this->addFirstArgumentToSequence());
-        $this->messageBroker->addConsumer('Consumer #3', $this->addTextToSequence('Consumer #3 should not be called'));
+        $this->messageBroker->addConsumer('Consumer #2', $this->sequenceRecorder->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer(
+            'Consumer #3',
+            $this->sequenceRecorder->addTextToSequence('Consumer #3 should not be called')
+        );
 
         $this->messageBroker->sendMessage(
             'My Message #1',
-            $this->addTextToSequence('Message has been accepted'),
-            $this->addFirstArgumentToSequence()
+            $this->sequenceRecorder->addTextToSequence('Message has been accepted'),
+            $this->sequenceRecorder->addFirstArgumentToSequence()
         );
 
         $this->verifyActionSequence('My Message #1', 'Message has been accepted');
@@ -133,17 +138,21 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @test */
     public function prioritizesMessageToAConsumerWithFilterForItsHeader()
     {
-        $this->messageBroker->addConsumer('Not Filtered', $this->addTextToSequence('Consumer should not be called'));
+        $this->messageBroker->addConsumer(
+            'Not Filtered',
+            $this->sequenceRecorder->addTextToSequence('Consumer should not be called')
+        );
+
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Consumer with filter',
-            $this->addAllArgumentsToSequence(),
+            $this->sequenceRecorder->addAllArgumentsToSequence(),
             ['type' => 'filter']
         );
 
         $this->messageBroker->sendMessage(
             'Filtered Message',
-            $this->addTextToSequence('Filtered Message is delivered'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Filtered Message is delivered'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter']
         );
 
@@ -154,17 +163,17 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @test */
     public function skipsFilteredConsumerIfMessageDoesNotMatch()
     {
-        $this->messageBroker->addConsumer('Not Filtered', $this->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer('Not Filtered', $this->sequenceRecorder->addFirstArgumentToSequence());
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Consumer with filter',
-            $this->addTextToSequence('This filter should not be triggered'),
+            $this->sequenceRecorder->addTextToSequence('This filter should not be triggered'),
             ['type' => 'filter']
         );
 
         $this->messageBroker->sendMessage(
             'Filtered Message',
-            $this->addTextToSequence('Filtered Message is delivered'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Filtered Message is delivered'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter2']
         );
 
@@ -176,14 +185,14 @@ class InMemoryMessageBrokerTest extends TestCase
     {
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Filtered Consumer #1',
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter']
         );
 
         $this->messageBroker->sendMessage(
             ['hello' => 'world'],
-            $this->addTextToSequence('Message success callback, that should not be called'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Message success callback, that should not be called'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter']
         );
 
@@ -197,14 +206,14 @@ class InMemoryMessageBrokerTest extends TestCase
     {
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Matched Consumer',
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter']
         );
 
         $this->messageBroker->sendMessage(
             'Filtered Message',
-            $this->addTextToSequence('Filtered Message is delivered'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Filtered Message is delivered'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['header' => 'name', 'type' => 'filter']
         );
 
@@ -216,21 +225,21 @@ class InMemoryMessageBrokerTest extends TestCase
     {
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Matched Consumer',
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter', 'reply-to' => 'message-id']
         );
 
         $this->messageBroker->sendMessage(
             'Message should not be delivered',
-            $this->addTextToSequence('It is delivered, but should not'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('It is delivered, but should not'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter']
         );
 
         $this->messageBroker->sendMessage(
             'Reply Filtered Message',
-            $this->addTextToSequence('Reply Filtered Message is delivered'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Reply Filtered Message is delivered'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter', 'reply-to' => 'message-id']
         );
 
@@ -246,14 +255,14 @@ class InMemoryMessageBrokerTest extends TestCase
     {
         $this->messageBroker->addConsumerWithHeaderFilter(
             'Matched Consumer',
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['type' => 'filter', 'reply-to' => 'message-id']
         );
 
         $this->messageBroker->sendMessage(
             'Reply Filtered Message',
-            $this->addTextToSequence('Reply Filtered Message is delivered'),
-            $this->addFirstArgumentToSequence(),
+            $this->sequenceRecorder->addTextToSequence('Reply Filtered Message is delivered'),
+            $this->sequenceRecorder->addFirstArgumentToSequence(),
             ['reply-to' => 'message-id', 'type' => 'filter']
         );
 
@@ -266,7 +275,7 @@ class InMemoryMessageBrokerTest extends TestCase
     /** @test */
     public function deliversAllMessagesInSingleRoutingByDefault()
     {
-        $this->messageBroker->addConsumer('Consumer', $this->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer('Consumer', $this->sequenceRecorder->addFirstArgumentToSequence());
 
         $messageIndexes = range(0, 100);
 
@@ -288,7 +297,7 @@ class InMemoryMessageBrokerTest extends TestCase
     public function deliversLimitedNumberOfMessagesPerRoutingWhenLimitIsSet()
     {
         $this->messageBroker = InMemoryMessageBroker::createWithMessageLimit(2);
-        $this->messageBroker->addConsumer('Consumer', $this->addFirstArgumentToSequence());
+        $this->messageBroker->addConsumer('Consumer', $this->sequenceRecorder->addFirstArgumentToSequence());
 
         $emptyCallback = function () {
             // Do nothing
@@ -308,27 +317,6 @@ class InMemoryMessageBrokerTest extends TestCase
     private function verifyActionSequence(...$actions): void
     {
         $this->messageBroker->routeMessages();
-        $this->assertEquals($actions, $this->actionSequence);
-    }
-
-    private function addAllArgumentsToSequence(): callable
-    {
-        return function () {
-            $this->actionSequence[] = func_get_args();
-        };
-    }
-
-    private function addFirstArgumentToSequence(): callable
-    {
-        return function () {
-            $this->actionSequence[] = func_get_arg(0);
-        };
-    }
-
-    private function addTextToSequence(string $text): callable
-    {
-        return function () use ($text) {
-            $this->actionSequence[] = $text;
-        };
+        $this->sequenceRecorder->assertSequence(...$actions);
     }
 }
