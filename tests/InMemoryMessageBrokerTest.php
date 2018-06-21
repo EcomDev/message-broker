@@ -272,7 +272,6 @@ class InMemoryMessageBrokerTest extends TestCase
 
         $expectedSequence = [];
         $emptyCallback = function () {
-
         };
 
         foreach ($messageIndexes as $index) {

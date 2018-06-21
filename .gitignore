@@ -6,6 +6,7 @@
 ### Composer files
 composer.phar
 /vendor/
+cghooks.lock
 
 ### IDE
 /.idea/
